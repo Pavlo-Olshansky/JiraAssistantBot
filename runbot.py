@@ -1,20 +1,37 @@
 # -*- coding: utf-8 -*-
-import sys
+import requests
 
 from base.bot import Bot
 from base.items import *
 
 
 def dialog():
-    answer = yield "Здравствуйте! Меня забыли наградить именем, а как зовут вас?"
-    # убираем ведущие знаки пунктуации, оставляем только
-    # первую компоненту имени, пишем её с заглавной буквы
-    name = answer.text.rstrip(".!").split()[0].capitalize()
+    authorizated = yield from authorization()
+    if authorizated:
+        yield 'Success, you authorizated!'
+    else:
+        yield 'Sorry, you are not authorizated!'
+
     likes_python = yield from ask_yes_or_no("Приятно познакомиться, %s. Вам нравится Питон?" % name)
     if likes_python:
         answer = yield from discuss_good_python(name)
     else:
         answer = yield from discuss_bad_python(name)
+
+
+def authorization():
+    url = yield 'Enter your Jira account url (company.atlassian.net)'
+    username = yield 'Enter your Jira account username or email'
+    token_url = 'https://id.atlassian.com/manage/api-tokens'
+    token = yield f'Enter your token. You can create your token here - {token_url}'
+
+    user_header = f'{username.text}:{token.text}'
+    jira_url = f'https://{url.text}'
+
+    response = requests.get(jira_url, headers={'user': user_header})
+    if response.status_code == 200:
+        return True
+    return False
 
 
 def ask_yes_or_no(question):

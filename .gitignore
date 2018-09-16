@@ -1,3 +1,5 @@
 .jira_assistant
 __pycache__
 settings_local.py
+jira_assistant.sublime-project
+jira_assistant.sublime-workspace

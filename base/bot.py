@@ -41,29 +41,21 @@ class Bot(object):
     def _send_answer(self, bot, chat_id, answer):
         print("Sending answer %r to %s" % (answer, chat_id))
         if isinstance(answer, collections.abc.Iterable) and not isinstance(answer, str):
-            # мы получили несколько объектов -- сперва каждый надо обработать
             answer = list(map(self._convert_answer_part, answer))
         else:
-            # мы получили один объект -- сводим к более общей задаче
             answer = [self._convert_answer_part(answer)]
-        # перед тем, как отправить очередное сообщение, идём вперёд в поисках
-        # «довесков» -- клавиатуры там или в перспективе ещё чего-нибудь
+
         current_message = None
         for part in answer:
             if isinstance(part, Message):
                 if current_message is not None:
-                    # сообщение, которое мы встретили раньше, пора бы отправить.
                     options = dict(current_message.options)
-                    # поскольку не все объекты исчерпаны, пусть это сообщение
-                    # не вызывает звоночек (если не указано обратное)
                     options.setdefault("disable_notification", True)
                     bot.sendMessage(chat_id=chat_id, text=current_message.text, **options)
                 current_message = part
             if isinstance(part, ReplyMarkup):
-                # ага, а вот и довесок! добавляем текущему сообщению.
-                # нет сообщения -- ну извините, это ошибка.
                 current_message.options["reply_markup"] = part
-        # надо не забыть отправить последнее встреченное сообщение.
+
         if current_message is not None:
             bot.sendMessage(chat_id=chat_id, text=current_message.text, **current_message.options)
 
@@ -71,16 +63,11 @@ class Bot(object):
         if isinstance(answer_part, str):
             return Message(answer_part)
         if isinstance(answer_part, collections.abc.Iterable):
-            # клавиатура?
             answer_part = list(answer_part)
             if isinstance(answer_part[0], str):
-                # она! оформляем как горизонтальный ряд кнопок.
-                # кстати, все наши клавиатуры одноразовые -- нам пока хватит.
                 return ReplyKeyboardMarkup([answer_part], one_time_keyboard=True)
             elif isinstance(answer_part[0], collections.abc.Iterable):
-                # двумерная клавиатура?
                 answer_part = list(map(list, answer_part))
                 if isinstance(answer_part[0][0], str):
-                    # она!
                     return ReplyKeyboardMarkup(answer_part, one_time_keyboard=True)
         return answer_part
