@@ -8,6 +8,8 @@ from telegram import ReplyKeyboardMarkup, ReplyMarkup
 
 from base.items import Message
 
+from django_microservice.core.views import DjangoController
+
 
 TELEGRAM_API_KEY = settings.TELEGRAM_API_KEY
 
@@ -21,6 +23,8 @@ class Bot(object):
         )
         self.updater.dispatcher.add_handler(handler)
         self.handlers = collections.defaultdict(generator, handlers or {})
+        settings_path = 'django_microservice.django_microservice.settings'
+        self.DjangoController = DjangoController(settings_path)
 
     def start(self):
         self.updater.start_polling()
