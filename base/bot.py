@@ -8,7 +8,7 @@ from telegram import ReplyKeyboardMarkup, ReplyMarkup
 
 from base.items import Message
 
-from django_microservice.core.views import DjangoController
+from core.views import DjangoController
 
 
 TELEGRAM_API_KEY = settings.TELEGRAM_API_KEY
@@ -23,14 +23,18 @@ class Bot(object):
         )
         self.updater.dispatcher.add_handler(handler)
         self.handlers = collections.defaultdict(generator, handlers or {})
-        settings_path = 'django_microservice.django_microservice.settings'
+        settings_path = 'django_microservice.settings'
         self.DjangoController = DjangoController(settings_path)
+        self.user = None
 
     def start(self):
         self.updater.start_polling()
 
     def handle_message(self, bot, update):
         print("Received", update.message)
+        self.user = self.user or self.DjangoController.get_or_create_user(
+            update
+        )
         chat_id = update.message.chat_id
         if update.message.text == "/start":
             self.handlers.pop(chat_id, None)

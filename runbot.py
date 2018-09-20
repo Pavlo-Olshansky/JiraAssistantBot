@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 import requests
+import os
+
+from django import setup
+from django.apps import apps
+from django.conf import settings
 
 from base.bot import Bot
 from base.items import Message, Markdown, HTML
@@ -22,7 +27,7 @@ class Dialog(object):
         # authorizated = yield from authorization()
         self.authorizated = True
         if self.authorizated:
-            yield Message('Success, you authorizated!')
+            yield HTML('<b>Success, you authorizated!</b>')
             selection = yield ('Select an operation', MENU)
             if selection == VIEW_TASK:
                 self.view_task_dialog()
