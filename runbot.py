@@ -2,12 +2,15 @@
 import requests
 import os
 
+from jira import JIRA
+
 from django import setup
 from django.apps import apps
 from django.conf import settings
 
 from base.bot import Bot
 from base.items import Message, Markdown, HTML
+
 
 VIEW_TASK = '🔍 View task'
 CREATE_TASK = '💾 Create task'
@@ -24,18 +27,20 @@ class Dialog(object):
         self.authorizated = False
 
     def start(self):
-        # authorizated = yield from authorization()
-        self.authorizated = True
+        self.authorizated = yield from self.authorization()
+        # self.authorizated = True
+
         if self.authorizated:
-            yield HTML('<b>Success, you authorizated!</b>')
-            selection = yield ('Select an operation', MENU)
-            if selection == VIEW_TASK:
-                self.view_task_dialog()
-            elif selection == CREATE_TASK:
+            selection = yield (
+                'Success, you authorizated!\nSelect an operation', MENU)
+
+            if selection.text == VIEW_TASK:
+                yield from self.view_task_dialog()
+            elif selection.text == CREATE_TASK:
                 self.create_task_dialog()
-            elif selection == PING_TASK:
+            elif selection.text == PING_TASK:
                 self.ping_task_dialog()
-            elif selection == EDIT_TASK:
+            elif selection.text == EDIT_TASK:
                 self.edit_task_dialog()
         else:
             yield 'Sorry, you are not authorizated!\n' + \
@@ -45,7 +50,9 @@ class Dialog(object):
             yield Markdown("Так <b>да</b> или <b>нет</b>?")
 
     def view_task_dialog(self):
-        pass
+        issue_number = yield 'Enter task number'
+        issue = self.jira.issue(issue_number.text)
+        yield issue.fields.summary
 
     def create_task_dialog(self):
         pass
@@ -59,20 +66,20 @@ class Dialog(object):
     def authorization(self):
         company = yield 'Enter your Jira account name.\n' + \
             '(company from company.atlassian.net)'
-        username = yield 'Enter your Jira account username or email'
+        login = yield 'Enter your Jira account login or email'
         token_url = 'https://id.atlassian.com/manage/api-tokens'
         token = yield f'Enter your token.\n' + \
             f'You can create your token here - {token_url}'
-
-        user_header = f'{username.text}:{token.text}'
         url = f'https://{company.text}.atlassian.net'
 
         try:
-            response = requests.get(url, headers={'user': user_header})
-            if response.status_code == 200:
+            self.jira = JIRA(url, basic_auth=(login.text, token.text))
+            projects = self.jira.projects()
+            if projects:
                 return True
         except Exception as e:
             print(f'Exception: {e}')
+
         return False
 
 

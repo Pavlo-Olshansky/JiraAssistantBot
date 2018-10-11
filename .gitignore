@@ -3,3 +3,4 @@ __pycache__
 settings_local.py
 jira_assistant.sublime-project
 jira_assistant.sublime-workspace
+db.sqlite3
