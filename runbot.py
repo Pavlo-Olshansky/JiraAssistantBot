@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-import requests
-import os
-
 from jira import JIRA
-
-from django import setup
-from django.apps import apps
-from django.conf import settings
 
 from base.bot import Bot
 from base.items import Message, Markdown, HTML

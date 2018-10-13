@@ -14,7 +14,9 @@ class DjangoController(object):
         setup()
 
     def get_or_create_user(self, update):
-        user, created = apps.get_model(settings.AUTH_USER_MODEL).objects.get_or_create(
+        user, created = apps.get_model(
+            settings.AUTH_USER_MODEL
+        ).objects.get_or_create(
             username=update.effective_user.username
         )
         if created:
