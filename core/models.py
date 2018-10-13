@@ -46,6 +46,17 @@ class Profile(CoreModel):
         null=True,
         blank=True
     )
+    jira_username_key = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True
+    )
+    jira_username_display = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True
+    )
+
 
     def __str__(self):
         return f'Profile with chat_id {self.chat_id}'

@@ -27,6 +27,7 @@ class Bot(object):
         self.generator = generator
         settings_path = 'django_microservice.settings'
         self.DjangoController = DjangoController(settings_path)
+        self.generator.DjangoController = self.DjangoController
         self.generator.user = None
 
     def start(self):
@@ -34,22 +35,18 @@ class Bot(object):
 
     def handle_message(self, bot, update):
         print("Received", update.message)
-        print('user1: ', str(self.generator.user))
         self.generator.user = self.generator.user or self.DjangoController.get_or_create_user(
             update
         )
-        print('user2: ', str(self.generator.user))
         chat_id = update.message.chat_id
+
         if update.message.text == "/start":
             self.handlers.pop(chat_id, None)
         if update.message.text == '/authorization':
-            print('[method /authorization:]')
-            # self.generator.user.is_deleted = True
-            # self.generator.user.save()
+            print('[/authorization method]')
             self.generator.user = None
-            print('[user_deleted]')
             self.handlers.pop(chat_id, None)
-            print('[chat id poped]')
+
         if chat_id not in self.handlers:
             answer = next(self.handlers[chat_id])
         else:

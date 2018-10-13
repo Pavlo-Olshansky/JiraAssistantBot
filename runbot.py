@@ -17,14 +17,12 @@ class Dialog(object):
     def start(self):
         print('[Start Dialog]')
         self.authorizated = self.authorization()
-        print('self.authorizated: ', self.authorizated)
         if not self.authorizated:
             self.authorizated = yield from self.get_creditails()
 
         if self.authorizated:
             selection = yield (self.answer or 'Select an operation', MENU)
             self.answer = None
-            print('selection: ', selection)
 
             if selection.text == VIEW_TASK:
                 yield from self.view_task_dialog()
@@ -43,15 +41,55 @@ class Dialog(object):
                 'Try login again by typing /authorization.'
 
     def view_task_dialog(self):
-        issue_number = yield 'Enter task number'
-        issue = self.jira.issue(issue_number.text)
-        self.answer = issue.fields.summary
+        task_number = yield 'Enter task number'
+        issue = self.jira.issue(task_number.text)
+
+        labels = ''
+        if issue.fields.labels:
+            labels = str(' '.join(issue.fields.labels))
+        company = self.user.profile.company_name
+        url = f'https://{company}.atlassian.net/browse/{task_number.text}'
+
+        task_details = '`{summary}`{labels}\n\n {description}\n\n{url}'.format(
+            summary=issue.fields.summary,
+            labels='\nLabels: `' + labels + '`',
+            description=issue.fields.description,
+            url=url
+        )
+        self.answer = Markdown(task_details)
 
     def create_task_dialog(self):
         pass
 
     def ping_task_dialog(self):
-        pass
+        users = self.DjangoController.get_jira_users(self.user)
+        if not users:
+            self.answer = 'Sorry, there is no your team in Jira Bot.' + \
+                'Share @JiraAssistant_Bot with your team and ping them !'
+            return
+
+        users_menu = [[str(user.profile.jira_username_display) + ' (' + \
+                str(user.profile.jira_username_key) + ')'
+            ] for user in users]
+
+        selected_user = yield ('Select a user.', users_menu)
+        task_number = yield('Enter task number to ping.')
+
+        jira_username_key_selected = selected_user.text.split('(')[-1][:-1]
+        user = users.filter(
+            profile__jira_username_key=jira_username_key_selected
+        )
+
+        ping_success = self.ping_user(
+            user=user,
+            task_number=task_number.text
+        )
+        if ping_success:
+            self.answer = f'Ping user {selected_user.text} for task' + \
+                f'{task_number.text} success!'
+        else:
+            self.answer = 'Ping Failure.' + \
+                'Something went wrong, please try again.'
 
     def edit_task_dialog(self):
         pass
@@ -62,7 +100,6 @@ class Dialog(object):
             f'Login: `{self.user.profile.jira_login}`\n' + \
             f'Token: `{self.user.profile.jira_token}`\n\n' + \
             'Are you want to change your credentials ?'
-        print('msg: ', msg)
         answer = yield (Markdown(msg), ['Yes', 'No'])
 
         if answer.text == 'Yes':
@@ -72,20 +109,21 @@ class Dialog(object):
         print('[Authorization]')
         if self.user and self.user.profile.jira_login and \
                 self.user.profile.jira_token:
-            print('user: ', self.user, self.user.profile.jira_login, self.user.profile.jira_token)
             return self.check_jira_connection()
 
         return False
 
     def check_jira_connection(self):
         print('[Checking jira connection]')
+
         try:
             url = f'https://{self.user.profile.company_name}.atlassian.net'
             self.jira = JIRA(url, basic_auth=(
-                self.user.profile.jira_login, self.user.profile.jira_token)
-            )
-            projects = self.jira.projects()
-            if projects:
+                self.user.profile.jira_login, self.user.profile.jira_token))
+            users = self.jira.search_users(self.user.profile.jira_login)
+            if users:
+                self.user.profile.jira_username_key = users[0].key
+                self.user.profile.jira_username_display = users[0].displayName
                 return True
         except Exception as e:
             print(f'Exception: {e}')
@@ -104,22 +142,18 @@ class Dialog(object):
         self.user.profile.company_name = company.text
         self.user.profile.jira_login = login.text
         self.user.profile.jira_token = token.text
-        self.user.profile.save()
 
-        try:
-            self.jira = JIRA(url, basic_auth=(login.text, token.text))
-            print(str(self.jira), '___-_-____')
-            projects = self.jira.projects()
-            print('projects: ', projects)
-            if projects:
-                print('return True from get_creditails')
-                self.answer = 'You are loggined successfully!'
-                return True
-        except Exception as e:
-            print(f'Exception: {e}')
+        is_connected = self.check_jira_connection()
+        if is_connected:
+            self.user.profile.save()
+            username = ', ' + self.user.profile.jira_username_display or ''
+            self.answer = f'Welcome{username}! You are loggined successfully.'
+            return True
 
-        print('return False from get_creditails')
         return False
+
+    def ping_user(self, user, task_number):
+        return True
 
 
 if __name__ == "__main__":
