@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-
 class CoreModel(models.Model):
     update_time = models.DateTimeField(
         'Updated',
@@ -29,6 +28,21 @@ class Profile(CoreModel):
     )
     chat_id = models.CharField(
         max_length=64,
+        null=True,
+        blank=True
+    )
+    jira_login = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True
+    )
+    jira_token = models.CharField(
+        max_length=512,
+        null=True,
+        blank=True
+    )
+    company_name = models.CharField(
+        max_length=512,
         null=True,
         blank=True
     )

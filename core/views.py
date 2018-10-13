@@ -14,18 +14,33 @@ class DjangoController(object):
         setup()
 
     def get_or_create_user(self, update):
-        user, created = apps.get_model(
-            settings.AUTH_USER_MODEL
-        ).objects.get_or_create(
-            username=update.effective_user.username
+        print('[DjangoController get_or_create_user]')
+        print(settings.AUTH_USER_MODEL)
+        try:
+            user, created = apps.get_model(
+                settings.AUTH_USER_MODEL
+            ).objects.get_or_create(
+                username=update.effective_user.username
+            )
+        except Exception as e:
+            print('error')
+            print(e)
+        print('[{action} user {user}]'.format(
+            action=created and 'Created' or 'Get',
+            user=user)
         )
+
         if created:
+            print('1')
             apps.get_model('core.Profile').objects.create(
                 user=user,
                 chat_id=update.message.chat_id
             )
+            print('2')
         else:
+            print('3')
             user.profile.chat_id = update.message.chat_id
             user.profile.save()
+            print('4')
 
         return user
