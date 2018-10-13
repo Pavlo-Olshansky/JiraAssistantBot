@@ -40,9 +40,10 @@ class DjangoController(object):
         return user
 
     def get_jira_users(self, user):
-        print('asdasdasd')
-        asd = apps.get_model(
+        return apps.get_model(
                 settings.AUTH_USER_MODEL
-            ).objects.all().exclude(id=user.id)
-        print(asd)
-        return asd
+            ).objects.filter(
+                profile__company_name=user.profile.company_name
+            ).exclude(
+                id=user.id
+            )
