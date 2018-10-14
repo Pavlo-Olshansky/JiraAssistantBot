@@ -276,7 +276,7 @@ class Dialog(object):
 
     def edit_task_title(self, issue):
         prev_title_question = 'What title do you want to set ?\n' + \
-            f'Previous title - `{issue.fields.summary}`.'
+            f'Previous title - \n`{issue.fields.summary}`.'
         new_title = yield Markdown(prev_title_question)
         try:
             issue.update(summary=new_title.text)
@@ -289,7 +289,7 @@ class Dialog(object):
 
     def edit_task_description(self, issue):
         prev_description_question = 'What description do you want to set ?\n' + \
-            f'Previous description - `{issue.fields.description}`.'
+            f'Previous description - \n`{issue.fields.description}`.'
         new_description = yield Markdown(prev_description_question)
         try:
             issue.update(description=new_description.text)
