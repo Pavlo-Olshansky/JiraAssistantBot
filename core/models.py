@@ -56,6 +56,10 @@ class Profile(CoreModel):
         null=True,
         blank=True
     )
+    project_id = models.IntegerField(
+        null=True,
+        blank=True
+    )
 
 
     def __str__(self):

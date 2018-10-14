@@ -10,3 +10,9 @@ MENU = [
     [PING_TASK, EDIT_TASK],
     [AUTHORIZATION, FEEDBACK]
 ]
+
+YES = 'Yes'
+NO = 'No'
+YES_NO_QUESTION = [YES, NO]
+
+CANCEL = '❌ Cancel'

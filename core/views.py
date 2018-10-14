@@ -4,9 +4,12 @@ from django import setup
 from django.apps import apps
 from django.conf import settings
 
+from utils import notify_error, debug
+
 
 class DjangoController(object):
     def __init__(self, settings_path):
+        print('DjangoController')
         self.setup_django(settings_path)
 
     def setup_django(self, settings_path):
@@ -14,7 +17,6 @@ class DjangoController(object):
         setup()
 
     def get_or_create_user(self, update):
-        print('[DjangoController get_or_create_user]')
         try:
             user, created = apps.get_model(
                 settings.AUTH_USER_MODEL
@@ -22,8 +24,9 @@ class DjangoController(object):
                 username=update.effective_user.username
             )
         except Exception as e:
-            print('get_or_create_user error: ', e)
-        print('[{action} user {user}]'.format(
+            notify_error('get_or_create_user error: ' + str(e))
+
+        debug('[{action} user {user}]'.format(
             action=created and 'Created' or 'Get',
             user=user)
         )

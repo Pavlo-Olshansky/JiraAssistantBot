@@ -7,11 +7,12 @@ from jira import JIRA
 from base.bot import Bot
 from base.items import Message, Markdown, HTML
 from base.menu import (VIEW_TASK, CREATE_TASK, PING_TASK,
-    EDIT_TASK, AUTHORIZATION, FEEDBACK, MENU)
+    EDIT_TASK, AUTHORIZATION, FEEDBACK, MENU, YES, NO, YES_NO_QUESTION,
+    CANCEL)
 
 from core.views import DjangoController
 
-from utils import send_message
+from utils import send_message, notify_error, debug
 
 
 class Dialog(object):
@@ -20,7 +21,7 @@ class Dialog(object):
         self.answer = None
 
     def start(self):
-        print('[Start Dialog]')
+        debug('[Start Dialog]')
         self.authorizated = self.authorization()
         if not self.authorizated:
             self.authorizated = yield from self.get_creditails()
@@ -46,20 +47,16 @@ class Dialog(object):
                 'Try login again by typing /authorization.'
 
     def view_task_dialog(self):
-        task_number = yield 'Enter task number'
+        task_number = yield from self.get_task_number()
         try:
-            issue = self.jira.issue(task_number.text)
+            issue = self.jira.issue(task_number)
         except Exception as e:
-            print(e)
-            self.answer = f'Sorry, task {task_number.text} does not exist.'
+            notify_warning(e)
+            self.answer = f'Sorry, task {task_number} does not exist.'
             return
 
-        labels = ''
-        if issue.fields.labels:
-            labels = str(' '.join(issue.fields.labels))
-        company = self.user.profile.company_name
-        url = f'https://{company}.atlassian.net/browse/{task_number.text}'
-
+        labels = str(' '.join(issue.fields.labels))
+        url = self.get_task_url(task_number)
         task_details = '`{summary}`{labels}\n\n {description}\n\n{url}'.format(
             summary=issue.fields.summary,
             labels='\nLabels: `' + labels + '`',
@@ -69,12 +66,12 @@ class Dialog(object):
         self.answer = Markdown(task_details)
 
     def create_task_dialog(self):
-        project = self.jira.projects()[0]
+        project = self.get_user_project()
 
         confirmation = f'Create new task for project `{project.name}` ?'
-        confirm_creation = yield (Markdown(confirmation), ['Yes', 'No'])
+        confirm_creation = yield (Markdown(confirmation), YES_NO_QUESTION)
 
-        if confirm_creation.text != 'Yes':
+        if confirm_creation.text != YES:
             return
         task_summary = yield ('Enter task title:')
         task_description = yield ('Enter task description:')
@@ -86,12 +83,11 @@ class Dialog(object):
                 description=task_description.text
             )
         except Exception as e:
-            print(e)
+            notify_error(e)
             self.answer = 'Error. Task is not created for task'
             return
 
-        task_url = f'https://{self.user.profile.company_name}.' + \
-            'atlassian.net/browse/{new_issue.key}'
+        task_url = self.get_task_url(new_issue.key)
         self.answer = f'Task {new_issue.key} created.\n{task_url}'
 
     def ping_task_dialog(self):
@@ -101,18 +97,29 @@ class Dialog(object):
                 'Share @JiraAssistant_Bot with your team and ping them !'
             return
 
-        users_menu = [[str(user.username) + ' (' + \
+        users_menu = [[str(user.profile.jira_username_display) + ' (' + \
                 str(user.profile.jira_username_key) + ')'
             ] for user in users]
 
-        selected_user = yield ('Select a user.', users_menu)
-        task_number = yield('Enter task number to ping.')
+        users_menu.append([CANCEL])
 
+        user = None
+        selected_user = yield ('Select a user.', users_menu)
         jira_username_key_selected = selected_user.text.split('(')[-1][:-1]
         user = users.filter(
             profile__jira_username_key=jira_username_key_selected
         ).first()
 
+        while not (user or selected_user.text == CANCEL):
+            selected_user = yield ('Please, choose an existing user.', users_menu)
+            jira_username_key_selected = selected_user.text.split('(')[-1][:-1]
+            user = users.filter(
+                profile__jira_username_key=jira_username_key_selected
+            ).first()
+        if selected_user.text == CANCEL:
+            return
+
+        task_number = yield('Enter task number to ping.')
         ping_success = self.ping_user(
             user=user,
             task_number=task_number.text
@@ -125,56 +132,44 @@ class Dialog(object):
                 'Something went wrong, please try again.'
 
     def edit_task_dialog(self):
-        task_number = yield 'Enter task number'
+        task_number = yield from self.get_task_number()
         try:
-            issue = self.jira.issue(task_number.text)
+            issue = self.jira.issue(task_number)
         except Exception as e:
-            print(e)
-            self.answer = f'Sorry, task {task_number.text} does not exist.'
+            notify_error(e)
+            self.answer = f'Sorry, task {task_number} does not exist.'
             return
 
-        msg = f'Edit task {task_number.text} ? (`{issue.fields.summary}`)'
-        confirm_edit = yield (Markdown(msg), ['Yes', 'No'])
-        if confirm_edit.text == 'No':
+        msg = f'Edit task {task_number} ? (`{issue.fields.summary}`)'
+        confirm_edit = yield (Markdown(msg), YES_NO_QUESTION)
+        if confirm_edit.text != YES:
             return
 
         edit_question = 'What you want to edit ?'
-        edit_option = ['Title', 'Description']
+        TITLE = 'Title'
+        DESCRIPTION = 'Description'
+        edit_option = [TITLE, DESCRIPTION, CANCEL]
         to_edit = yield (edit_question, edit_option)
+        while not (to_edit.text in edit_option):
+            to_edit = yield ('Please, choose a valid option', edit_option)
 
-        if to_edit.text == 'Title':
-            prev_title_question = 'What title do you want to set ?\n' + \
-                f'Previous title - `{issue.fields.summary}`.'
-            new_title = yield Markdown(prev_title_question)
-            try:
-                issue.update(summary=new_title.text)
-            except Exception as e:
-                print(e)
-                self.answer = 'Error. Title for task {task_number.text} ' + \
-                    'is not updated.'
-                return
-            self.answer = f'Title for task {task_number} updated !'
-
-        elif to_edit.text == 'Description':
-            prev_description_question = 'What description do you want to set ?\n' + \
-                f'Previous description - `{issue.fields.description}`.'
-            new_description = yield Markdown(prev_description_question)
-            try:
-                issue.update(description=new_description.text)
-            except Exception as e:
-                print(e)
-                self.answer = 'Error. Description for task ' + \
-                    '{task_number.text} is not updated.'
-                return
-            self.answer = f'Description for task {task_number.text} updated !'
+        if to_edit.text == TITLE:
+            response = yield from self.edit_task_title(issue)
+        elif to_edit.text == DESCRIPTION:
+            response = yield from self.edit_task_description(issue)
+        elif to_edit.text == CANCEL:
+            return
         else:
             return
+        return response
 
     def change_credentials_dialog(self):
+        project = self.get_user_project()
         msg = 'Current credentials:\n' + \
             f'Company: `{self.user.profile.company_name}`\n' + \
             f'Login: `{self.user.profile.jira_login}`\n' + \
-            f'Token: `{self.user.profile.jira_token}`\n\n' + \
+            f'Token: `{self.user.profile.jira_token}`\n' + \
+            f'Project: `{project.name}`\n\n' + \
             'Are you want to change your credentials ?'
         answer = yield (Markdown(msg), ['Yes', 'No'])
 
@@ -195,7 +190,7 @@ class Dialog(object):
             self.answer = 'Sorry, an error occured.'
 
     def authorization(self):
-        print('[Authorization]')
+        debug('[Authorization]')
         if self.user and self.user.profile.jira_login and \
                 self.user.profile.jira_token:
             return self.check_jira_connection()
@@ -203,7 +198,7 @@ class Dialog(object):
         return False
 
     def check_jira_connection(self):
-        print('[Checking jira connection]')
+        debug('[Checking jira connection]')
 
         try:
             url = f'https://{self.user.profile.company_name}.atlassian.net'
@@ -215,12 +210,12 @@ class Dialog(object):
                 self.user.profile.jira_username_display = users[0].displayName
                 return True
         except Exception as e:
-            print(f'Exception: {e}')
+            notify_error(e)
 
         return False
 
     def get_creditails(self):
-        print(f'[Grtting creditails for {self.user}]')
+        debug(f'[Grtting creditails for {self.user}]')
         company = yield 'Enter your Jira account name.\n' + \
             '(company from company.atlassian.net)'
         login = yield 'Enter your Jira account login or email'
@@ -234,6 +229,7 @@ class Dialog(object):
 
         is_connected = self.check_jira_connection()
         if is_connected:
+            self.user.profile.project_id = self.jira.projects()[0].id
             self.user.profile.save()
             username = ', ' + self.user.profile.jira_username_display or ''
             self.answer = f'Welcome{username}! You are loggined successfully.'
@@ -263,6 +259,46 @@ class Dialog(object):
             reply_markup=reply_markup
         )
         return message_is_sent
+
+    def get_task_url(self, task_number):
+        company = self.user.profile.company_name
+        url = f'https://{company}.atlassian.net/browse/{task_number}'
+        return url
+
+    def get_user_project(self):
+        return self.jira.project(self.user.profile.project_id)
+
+    def get_task_number(self):
+        project = self.get_user_project()
+        number = yield Markdown(f'Enter task number:\n`{project.key}-`')
+        task_number = f'{project.key}-{number.text}'
+        return task_number
+
+    def edit_task_title(self, issue):
+        prev_title_question = 'What title do you want to set ?\n' + \
+            f'Previous title - `{issue.fields.summary}`.'
+        new_title = yield Markdown(prev_title_question)
+        try:
+            issue.update(summary=new_title.text)
+        except Exception as e:
+            notify_error(e)
+            self.answer = f'Error. Title for task {issue.key} ' + \
+                'is not updated.'
+            return
+        self.answer = f'Title for task {issue.key} updated !'
+
+    def edit_task_description(self, issue):
+        prev_description_question = 'What description do you want to set ?\n' + \
+            f'Previous description - `{issue.fields.description}`.'
+        new_description = yield Markdown(prev_description_question)
+        try:
+            issue.update(description=new_description.text)
+        except Exception as e:
+            notify_error(e)
+            self.answer = 'Error. Description for task ' + \
+                f'{issue.key} is not updated.'
+            return
+        self.answer = f'Description for task {issue.key} updated !'
 
 
 if __name__ == "__main__":

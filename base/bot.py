@@ -10,6 +10,8 @@ from base.items import Message
 
 from core.views import DjangoController
 
+from utils import debug
+
 
 TELEGRAM_API_KEY = settings.TELEGRAM_API_KEY
 
@@ -34,7 +36,7 @@ class Bot(object):
         self.updater.start_polling()
 
     def handle_message(self, bot, update):
-        print("Received", update.message)
+        debug("Received" + str(update.message))
         self.generator.user = self.DjangoController.get_or_create_user(
             update
         )
@@ -43,7 +45,7 @@ class Bot(object):
         if update.message.text == "/start":
             self.handlers.pop(chat_id, None)
         if update.message.text == '/authorization':
-            print('[/authorization method]')
+            debug('[/authorization method]')
             self.generator.user = None
             self.handlers.pop(chat_id, None)
 
@@ -58,7 +60,7 @@ class Bot(object):
         self._send_answer(bot, chat_id, answer)
 
     def _send_answer(self, bot, chat_id, answer):
-        print("Sending answer %r to %s" % (answer, chat_id))
+        debug("Sending answer %r to %s" % (answer, chat_id))
         if isinstance(answer, collections.abc.Iterable) and \
                 not isinstance(answer, str):
             answer = list(map(self._convert_answer_part, answer))
