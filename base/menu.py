@@ -1,7 +1,7 @@
 VIEW_TASK = '🔍 View task'
 CREATE_TASK = '💾 Create task'
 PING_TASK = '💡 Ping task'
-EDIT_TASK = '🔧 Edit Description'
+EDIT_TASK = '🔧 Edit task'
 AUTHORIZATION = '🔑 Authorization'
 FEEDBACK = '📨 Feedback'
 

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import settings
+import telegram
+
 from jira import JIRA
 
 from base.bot import Bot
@@ -7,6 +10,8 @@ from base.menu import (VIEW_TASK, CREATE_TASK, PING_TASK,
     EDIT_TASK, AUTHORIZATION, FEEDBACK, MENU)
 
 from core.views import DjangoController
+
+from utils import send_message
 
 
 class Dialog(object):
@@ -42,7 +47,12 @@ class Dialog(object):
 
     def view_task_dialog(self):
         task_number = yield 'Enter task number'
-        issue = self.jira.issue(task_number.text)
+        try:
+            issue = self.jira.issue(task_number.text)
+        except Exception as e:
+            print(e)
+            self.answer = f'Sorry, task {task_number.text} does not exist.'
+            return
 
         labels = ''
         if issue.fields.labels:
@@ -59,7 +69,30 @@ class Dialog(object):
         self.answer = Markdown(task_details)
 
     def create_task_dialog(self):
-        pass
+        project = self.jira.projects()[0]
+
+        confirmation = f'Create new task for project `{project.name}` ?'
+        confirm_creation = yield (Markdown(confirmation), ['Yes', 'No'])
+
+        if confirm_creation.text != 'Yes':
+            return
+        task_summary = yield ('Enter task title:')
+        task_description = yield ('Enter task description:')
+
+        try:
+            new_issue = self.jira.create_issue(
+                project={'id': project.id},
+                summary=task_summary.text,
+                description=task_description.text
+            )
+        except Exception as e:
+            print(e)
+            self.answer = 'Error. Task is not created for task'
+            return
+
+        task_url = f'https://{self.user.profile.company_name}.' + \
+            'atlassian.net/browse/{new_issue.key}'
+        self.answer = f'Task {new_issue.key} created.\n{task_url}'
 
     def ping_task_dialog(self):
         users = self.DjangoController.get_jira_users(self.user)
@@ -68,7 +101,7 @@ class Dialog(object):
                 'Share @JiraAssistant_Bot with your team and ping them !'
             return
 
-        users_menu = [[str(user.profile.jira_username_display) + ' (' + \
+        users_menu = [[str(user.username) + ' (' + \
                 str(user.profile.jira_username_key) + ')'
             ] for user in users]
 
@@ -78,21 +111,64 @@ class Dialog(object):
         jira_username_key_selected = selected_user.text.split('(')[-1][:-1]
         user = users.filter(
             profile__jira_username_key=jira_username_key_selected
-        )
+        ).first()
 
         ping_success = self.ping_user(
             user=user,
             task_number=task_number.text
         )
         if ping_success:
-            self.answer = f'Ping user {selected_user.text} for task' + \
+            self.answer = f'Ping user {selected_user.text} for task ' + \
                 f'{task_number.text} success!'
         else:
             self.answer = 'Ping Failure.' + \
                 'Something went wrong, please try again.'
 
     def edit_task_dialog(self):
-        pass
+        task_number = yield 'Enter task number'
+        try:
+            issue = self.jira.issue(task_number.text)
+        except Exception as e:
+            print(e)
+            self.answer = f'Sorry, task {task_number.text} does not exist.'
+            return
+
+        msg = f'Edit task {task_number.text} ? (`{issue.fields.summary}`)'
+        confirm_edit = yield (Markdown(msg), ['Yes', 'No'])
+        if confirm_edit.text == 'No':
+            return
+
+        edit_question = 'What you want to edit ?'
+        edit_option = ['Title', 'Description']
+        to_edit = yield (edit_question, edit_option)
+
+        if to_edit.text == 'Title':
+            prev_title_question = 'What title do you want to set ?\n' + \
+                f'Previous title - `{issue.fields.summary}`.'
+            new_title = yield Markdown(prev_title_question)
+            try:
+                issue.update(summary=new_title.text)
+            except Exception as e:
+                print(e)
+                self.answer = 'Error. Title for task {task_number.text} ' + \
+                    'is not updated.'
+                return
+            self.answer = f'Title for task {task_number} updated !'
+
+        elif to_edit.text == 'Description':
+            prev_description_question = 'What description do you want to set ?\n' + \
+                f'Previous description - `{issue.fields.description}`.'
+            new_description = yield Markdown(prev_description_question)
+            try:
+                issue.update(description=new_description.text)
+            except Exception as e:
+                print(e)
+                self.answer = 'Error. Description for task ' + \
+                    '{task_number.text} is not updated.'
+                return
+            self.answer = f'Description for task {task_number.text} updated !'
+        else:
+            return
 
     def change_credentials_dialog(self):
         msg = 'Current credentials:\n' + \
@@ -104,6 +180,19 @@ class Dialog(object):
 
         if answer.text == 'Yes':
             self.authorizated = yield from self.get_creditails()
+
+    def feedback_dialog(self):
+        feedback = yield ('Please, write a feedback:')
+
+        message_is_sent = send_message(
+            chat_id=settings.FEEDBACK_RECEIVER_CHAT_ID,
+            text=f'Йо чувааак, тут фідбек тобі пишуть кароч:\n{feedback.text}'
+        )
+        if message_is_sent:
+            self.answer = 'Thanks, you`re the best 👍\n' + \
+                'We will consider your wishes.'
+        else:
+            self.answer = 'Sorry, an error occured.'
 
     def authorization(self):
         print('[Authorization]')
@@ -127,7 +216,7 @@ class Dialog(object):
                 return True
         except Exception as e:
             print(f'Exception: {e}')
-        
+
         return False
 
     def get_creditails(self):
@@ -153,7 +242,27 @@ class Dialog(object):
         return False
 
     def ping_user(self, user, task_number):
-        return True
+        url = f'https://{self.user.profile.company_name}.' + \
+            'atlassian.net/browse/{task_number}'
+        msg = 'User {user} ping you about the task {task} - {url}'.format(
+            user=self.user.profile.jira_username_display,
+            task=task_number,
+            url=url
+        )
+
+        button_list = []
+        reply_markup = telegram.InlineKeyboardMarkup([
+            [telegram.InlineKeyboardButton(
+                '🔗 Open in browser',
+                url=url)],
+            button_list])
+
+        message_is_sent = send_message(
+            chat_id=user.profile.chat_id,
+            text=msg,
+            reply_markup=reply_markup
+        )
+        return message_is_sent
 
 
 if __name__ == "__main__":

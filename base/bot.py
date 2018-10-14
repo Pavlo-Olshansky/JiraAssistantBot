@@ -35,7 +35,7 @@ class Bot(object):
 
     def handle_message(self, bot, update):
         print("Received", update.message)
-        self.generator.user = self.generator.user or self.DjangoController.get_or_create_user(
+        self.generator.user = self.DjangoController.get_or_create_user(
             update
         )
         chat_id = update.message.chat_id
