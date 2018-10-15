@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 
+
 class CoreModel(models.Model):
     update_time = models.DateTimeField(
         'Updated',
@@ -60,7 +61,6 @@ class Profile(CoreModel):
         null=True,
         blank=True
     )
-
 
     def __str__(self):
         return f'Profile with chat_id {self.chat_id}'

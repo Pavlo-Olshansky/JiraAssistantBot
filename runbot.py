@@ -5,14 +5,13 @@ import telegram
 from jira import JIRA
 
 from base.bot import Bot
-from base.items import Message, Markdown, HTML
-from base.menu import (VIEW_TASK, CREATE_TASK, PING_TASK,
-    EDIT_TASK, AUTHORIZATION, FEEDBACK, MENU, YES, NO, YES_NO_QUESTION,
-    CANCEL)
+from base.items import Markdown, HTML
+from base.menu import (
+    VIEW_TASK, CREATE_TASK, PING_TASK, EDIT_TASK, AUTHORIZATION, FEEDBACK,
+    MENU, YES, YES_NO_QUESTION, CANCEL
+)
 
-from core.views import DjangoController
-
-from utils import send_message, notify_error, debug
+from utils import send_message, notify_error, notify_warning, debug
 
 
 class Dialog(object):
@@ -73,8 +72,8 @@ class Dialog(object):
 
         if confirm_creation.text != YES:
             return
-        task_summary = yield ('Enter task title:')
-        task_description = yield ('Enter task description:')
+        task_summary = yield HTML('Enter task <b>title</b>:')
+        task_description = yield HTML('Enter task <b>description</b>:')
 
         try:
             new_issue = self.jira.create_issue(
@@ -97,9 +96,9 @@ class Dialog(object):
                 'Share @JiraAssistant_Bot with your team and ping them !'
             return
 
-        users_menu = [[str(user.profile.jira_username_display) + ' (' + \
-                str(user.profile.jira_username_key) + ')'
-            ] for user in users]
+        users_menu = [[str(user.profile.jira_username_display) + ' (' +
+                       str(user.profile.jira_username_key) + ')'
+                       ] for user in users]
 
         users_menu.append([CANCEL])
 
@@ -111,7 +110,8 @@ class Dialog(object):
         ).first()
 
         while not (user or selected_user.text == CANCEL):
-            selected_user = yield ('Please, choose an existing user.', users_menu)
+            selected_user = yield ('Please, choose an existing user.',
+                                   users_menu)
             jira_username_key_selected = selected_user.text.split('(')[-1][:-1]
             user = users.filter(
                 profile__jira_username_key=jira_username_key_selected
@@ -222,7 +222,6 @@ class Dialog(object):
         token_url = 'https://id.atlassian.com/manage/api-tokens'
         token = yield f'Enter your token.\n' + \
             f'You can create your token here - {token_url}'
-        url = f'https://{company.text}.atlassian.net'
         self.user.profile.company_name = company.text
         self.user.profile.jira_login = login.text
         self.user.profile.jira_token = token.text
@@ -288,9 +287,9 @@ class Dialog(object):
         self.answer = f'Title for task {issue.key} updated !'
 
     def edit_task_description(self, issue):
-        prev_description_question = 'What description do you want to set ?\n' + \
+        new_desc_question = 'What description do you want to set ?\n' + \
             f'Previous description - \n`{issue.fields.description}`.'
-        new_description = yield Markdown(prev_description_question)
+        new_description = yield Markdown(new_desc_question)
         try:
             issue.update(description=new_description.text)
         except Exception as e:

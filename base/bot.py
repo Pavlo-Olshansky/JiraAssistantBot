@@ -24,7 +24,8 @@ class Bot(object):
             Filters.text | Filters.command, self.handle_message
         )
         self.updater.dispatcher.add_handler(handler)
-        self.handlers = collections.defaultdict(generator.start, handlers or {})
+        self.handlers = collections.defaultdict(
+            generator.start, handlers or {})
 
         self.generator = generator
         settings_path = 'django_microservice.settings'

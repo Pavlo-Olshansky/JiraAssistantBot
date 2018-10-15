@@ -21,7 +21,7 @@ def send_message(chat_id, text, reply_markup=None):
 
 def notify(msg, status):
     now = datetime.now()
-    text = f'[{status}] [{now}]: {error_msg}'
+    text = f'[{status}] [{now}]: {msg}'
     send_message(
         chat_id=settings.FEEDBACK_RECEIVER_CHAT_ID,
         text=text
