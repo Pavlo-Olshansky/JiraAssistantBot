@@ -10,6 +10,8 @@ DB_PORT = 'DB_PORT_HERE'
 
 DEBUG = False
 
+CELERY_BROKER_URL = 'CELERY_BROKER_URL_HERE'
+
 try:
     from settings_local import * # NOQA
 except Exception:

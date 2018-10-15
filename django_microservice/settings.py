@@ -73,9 +73,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'django_microservice.wsgi.application'
 
 
+CELERY_BROKER_URL = settings.CELERY_BROKER_URL
+CELERY_IMPORTS = (
+    'core.celery_tasks',
+)
+
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-
 
 # POSTGRESQL DB
 DATABASES = {
