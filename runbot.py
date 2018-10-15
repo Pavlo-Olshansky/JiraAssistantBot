@@ -238,19 +238,19 @@ class Dialog(object):
 
     def ping_user(self, user, task_number):
         url = f'https://{self.user.profile.company_name}.' + \
-            'atlassian.net/browse/{task_number}'
+            f'atlassian.net/browse/{task_number}'
         msg = 'User {user} ping you about the task {task} - {url}'.format(
             user=self.user.profile.jira_username_display,
             task=task_number,
             url=url
         )
 
-        button_list = []
-        reply_markup = telegram.InlineKeyboardMarkup([
-            [telegram.InlineKeyboardButton(
-                '🔗 Open in browser',
-                url=url)],
-            button_list])
+        button_list = [
+            telegram.InlineKeyboardButton('🔗 Open in browser', url=url)
+        ]
+        reply_markup = telegram.InlineKeyboardMarkup(
+            build_menu(button_list, n_cols=1)
+        )
 
         message_is_sent = send_message(
             chat_id=user.profile.chat_id,

@@ -3,14 +3,16 @@ import settings
 import collections
 import collections.abc
 
+from functools import wraps
+
 from telegram.ext import Filters, Updater, MessageHandler
-from telegram import ReplyKeyboardMarkup, ReplyMarkup
+from telegram import ReplyKeyboardMarkup, ReplyMarkup, ChatAction
 
 from base.items import Message
 
 from core.views import DjangoController
 
-from utils import debug
+from utils import debug, send_action
 
 
 TELEGRAM_API_KEY = settings.TELEGRAM_API_KEY
@@ -36,8 +38,9 @@ class Bot(object):
     def start(self):
         self.updater.start_polling()
 
+    @send_action(ChatAction.TYPING)
     def handle_message(self, bot, update):
-        debug("Received" + str(update.message))
+        debug('[ handle_message ]')
         self.generator.user = self.DjangoController.get_or_create_user(
             update
         )
@@ -95,12 +98,12 @@ class Bot(object):
             answer_part = list(answer_part)
             if isinstance(answer_part[0], str):
                 return ReplyKeyboardMarkup(
-                    [answer_part], one_time_keyboard=True
+                    [answer_part], one_time_keyboard=True, resize_keyboard=True
                 )
             elif isinstance(answer_part[0], collections.abc.Iterable):
                 answer_part = list(map(list, answer_part))
                 if isinstance(answer_part[0][0], str):
                     return ReplyKeyboardMarkup(
-                        answer_part, one_time_keyboard=True
+                        answer_part, one_time_keyboard=True, resize_keyboard=True
                     )
         return answer_part

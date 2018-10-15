@@ -9,7 +9,7 @@ from utils import notify_error, debug
 
 class DjangoController(object):
     def __init__(self, settings_path):
-        print('DjangoController')
+        debug('DjangoController')
         self.setup_django(settings_path)
 
     def setup_django(self, settings_path):
