@@ -16,3 +16,6 @@ NO = 'No'
 YES_NO_QUESTION = [YES, NO]
 
 CANCEL = '❌ Cancel'
+COMMENTS = '💬 Comments'
+TO_MENU = '⬅️ To menu'
+ADD_COMMENT = '🆕 Add comment'
