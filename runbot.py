@@ -8,7 +8,7 @@ from base.bot import Bot
 from base.items import Markdown, HTML
 from base.menu import (
     VIEW_TASK, CREATE_TASK, PING_TASK, EDIT_TASK, AUTHORIZATION, FEEDBACK,
-    MENU, YES, YES_NO_QUESTION, CANCEL
+    MENU, YES, YES_NO_QUESTION, CANCEL, COMMENTS, TO_MENU, ADD_COMMENT
 )
 
 from utils import send_message, notify_error, notify_warning, debug
@@ -62,7 +62,37 @@ class Dialog(object):
             description=issue.fields.description,
             url=url
         )
-        self.answer = Markdown(task_details)
+        action_with_task = yield (
+            Markdown(task_details),
+            [EDIT_TASK, COMMENTS, TO_MENU]
+        )
+
+        # TODO: refactor action with tasks
+        if action_with_task.text == EDIT_TASK:
+            yield from self.edit_task_dialog(issue)
+        elif action_with_task.text == COMMENTS:
+            comments = self.jira.comments(issue)
+            comments_by_author = [
+                '`' + str(i.author) + '`: ' + str(i.body) for i in comments
+            ]
+            comments_text = '\n'.join(comments_by_author)
+            if comments:
+                add_comment = yield (Markdown(
+                    comments_text),
+                    [ADD_COMMENT, TO_MENU]
+                )
+            else:
+                no_comment_msg = f'There is no comments on task {issue.key}'
+                add_comment = yield (no_comment_msg, [ADD_COMMENT, TO_MENU])
+
+            if add_comment.text == ADD_COMMENT:
+                new_comment = yield ('Please, enter new comment:')
+                comment = self.jira.add_comment(issue.key, new_comment.text)
+                self.answer = f'Comment for task {issue.key} created.'
+            else:
+                return
+        else:
+            return
 
     def create_task_dialog(self):
         project = self.get_user_project()
@@ -79,11 +109,12 @@ class Dialog(object):
             new_issue = self.jira.create_issue(
                 project={'id': project.id},
                 summary=task_summary.text,
-                description=task_description.text
+                description=task_description.text,
+                issuetype={'name': 'Story'}
             )
         except Exception as e:
             notify_error(e)
-            self.answer = 'Error. Task is not created for task'
+            self.answer = 'Error. Task is not created.'
             return
 
         task_url = self.get_task_url(new_issue.key)
@@ -131,16 +162,17 @@ class Dialog(object):
             self.answer = 'Ping Failure.' + \
                 'Something went wrong, please try again.'
 
-    def edit_task_dialog(self):
-        task_number = yield from self.get_task_number()
-        try:
-            issue = self.jira.issue(task_number)
-        except Exception as e:
-            notify_error(e)
-            self.answer = f'Sorry, task {task_number} does not exist.'
-            return
+    def edit_task_dialog(self, issue=None):
+        if not issue:
+            task_number = yield from self.get_task_number()
+            try:
+                issue = self.jira.issue(task_number)
+            except Exception as e:
+                notify_error(e)
+                self.answer = f'Sorry, task {task_number} does not exist.'
+                return
 
-        msg = f'Edit task {task_number} ? (`{issue.fields.summary}`)'
+        msg = f'Edit task {issue.key} ? (`{issue.fields.summary}`)'
         confirm_edit = yield (Markdown(msg), YES_NO_QUESTION)
         if confirm_edit.text != YES:
             return
@@ -228,13 +260,36 @@ class Dialog(object):
 
         is_connected = self.check_jira_connection()
         if is_connected:
-            self.user.profile.project_id = self.jira.projects()[0].id
+            project = yield from self.get_project()
+            if not project:
+                url = f'https://{company.text}.atlassian.net/secure/' + \
+                    'BrowseProjects.jspa?page=1&selectedCategory=all&' + \
+                    'selectedProjectType=all&sortKey=name&sortOrder=ASC'
+                yield ('Sorry, you have no project yet. ' + \
+                    f'Please, create a new one and authorize again. \n{url}')
+                return
+            self.user.profile.project_id = project.id
             self.user.profile.save()
             username = ', ' + self.user.profile.jira_username_display or ''
             self.answer = f'Welcome{username}! You are loggined successfully.'
             return True
 
         return False
+
+    def get_project(self):
+        debug('[Get project]')
+        projects = self.jira.projects()
+        projects_count = len(projects)
+        if projects_count == 1:
+            return projects[0]
+        elif projects_count < 1:
+            return None
+        else:
+            project_menu = [project.name for project in projects]
+            entered_project = yield ('Choose your project:', [project_menu])
+            for project in projects:
+                if project.name == entered_project.text:
+                    return project
 
     def ping_user(self, user, task_number):
         url = f'https://{self.user.profile.company_name}.' + \

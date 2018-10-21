@@ -1,8 +1,12 @@
 import os
+import json
 
 from django import setup
 from django.apps import apps
 from django.conf import settings
+
+from django.views.generic import View, DetailView
+from django.views.decorators.csrf import csrf_exempt
 
 from utils import notify_error, debug
 
@@ -50,3 +54,28 @@ class DjangoController(object):
             ).exclude(
                 id=user.id
             )
+
+
+class WebhookView(View):
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        return super(WebhookView, self).dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        import ipdb; ipdb.set_trace()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
