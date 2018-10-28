@@ -4,11 +4,34 @@ import json
 from django import setup
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth.models import User, Permission
+from django.http import HttpResponse
 
 from django.views.generic import View, DetailView
 from django.views.decorators.csrf import csrf_exempt
 
-from utils import notify_error, debug
+from utils import send_message, notify_error, debug
+
+
+NOTIFY_PERMISSION_MAPPER = {
+    'jira:issue_created': 'notify_on_task_created',
+    'jira:issue_updated': 'notify_on_task_updeted',
+    'jira:issue_deleted': 'notify_on_task_deleted',
+    'comment_created': 'notify_on_comment_created',
+    'comment_updated': 'notify_on_comment_updeted',
+    'comment_deleted': 'notify_on_comment_deleted',
+    'attachment_created': 'notify_on_attachment_created',
+    'attachment_deleted': 'notify_on_attachment_deleted',
+    'sprint_created': 'notify_on_sprint_created',
+    'sprint_updated': 'notify_on_sprint_updeted',
+    'sprint_deleted': 'notify_on_sprint_deleted',
+    'sprint_started': 'notify_on_sprint_started',
+    'sprint_closed': 'notify_on_sprint_closed',
+    'jira:version_created': 'notify_on_version_created',
+    'jira:version_updated': 'notify_on_version_updeted',
+    'jira:version_deleted': 'notify_on_version_deleted',
+    'jira:version_released': 'notify_on_version_released'
+}
 
 
 class DjangoController(object):
@@ -63,7 +86,34 @@ class WebhookView(View):
 
     def post(self, request, *args, **kwargs):
         data = json.loads(request.body)
-        import ipdb; ipdb.set_trace()
+        event = data['webhookEvent']
+
+        permission_codename = NOTIFY_PERMISSION_MAPPER.get(event, None)
+        if not permission_codename:
+            print('eventeventeventevent: ', event)
+            return HttpResponse(status=200)
+
+        users = User.objects.filter(
+            **{'profile__' + permission_codename: False}
+        )
+
+        # notify_only_my_assignee
+        hanler_func = getattr(self, permission_codename, self.pass_func)
+        hanler_func(data, users)
+
+        return HttpResponse(status=200)
+
+
+    def pass_func(self, data, users):
+        pass
+
+    def notify_on_task_updeted(self, data, users):
+        debug('[WebhookView] notify_on_task_updeted')
+        for user in users:
+            message_is_sent = send_message(
+                chat_id=user.profile.chat_id,
+                text=str(data)[:4096]
+            )
 
 
 

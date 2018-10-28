@@ -4,6 +4,7 @@ PING_TASK = '💡 Ping task'
 EDIT_TASK = '🔧 Edit task'
 AUTHORIZATION = '🔑 Authorization'
 FEEDBACK = '📨 Feedback'
+SETTINGS = '⚙️ Settings'
 
 MENU = [
     [VIEW_TASK, CREATE_TASK],

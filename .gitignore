@@ -5,3 +5,4 @@ jira_assistant.sublime-project
 jira_assistant.sublime-workspace
 db.sqlite3
 ngrok
+.DS_Store

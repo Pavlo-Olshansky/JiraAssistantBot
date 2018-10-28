@@ -61,6 +61,70 @@ class Profile(CoreModel):
         null=True,
         blank=True
     )
+    #
+    #
+    #           NOTIFYING
+    #
+    #
+    notify_only_my_assignee = models.BooleanField(
+        default=True
+    )
+    # TASK NOTIFYING
+    notify_on_task_created = models.BooleanField(
+        default=False
+    )
+    notify_on_task_updeted = models.BooleanField(
+        default=False
+    )
+    notify_on_task_deleted = models.BooleanField(
+        default=False
+    )
+    # ATTACHMENT NOTIFYING
+    notify_on_attachment_created = models.BooleanField(
+        default=False
+    )
+    notify_on_attachment_deleted = models.BooleanField(
+        default=False
+    )
+    # COMMENT NOTIFYING
+    notify_on_comment_created = models.BooleanField(
+        default=False
+    )
+    notify_on_comment_updeted = models.BooleanField(
+        default=False
+    )
+    notify_on_comment_deleted = models.BooleanField(
+        default=False
+    )
+    # VERSION NOTIFYING
+    notify_on_version_created = models.BooleanField(
+        default=False
+    )
+    notify_on_version_updeted = models.BooleanField(
+        default=False
+    )
+    notify_on_version_deleted = models.BooleanField(
+        default=False
+    )
+    notify_on_version_released = models.BooleanField(
+        default=False
+    )
+    # SPRINT NOTIFYING
+    notify_on_sprint_created = models.BooleanField(
+        default=False
+    )
+    notify_on_sprint_updeted = models.BooleanField(
+        default=False
+    )
+    notify_on_sprint_deleted = models.BooleanField(
+        default=False
+    )
+    notify_on_sprint_started = models.BooleanField(
+        default=False
+    )
+    notify_on_sprint_closed = models.BooleanField(
+        default=False
+    )
 
     def __str__(self):
         return f'Profile with chat_id {self.chat_id}'

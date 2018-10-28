@@ -8,7 +8,8 @@ from base.bot import Bot
 from base.items import Markdown, HTML
 from base.menu import (
     VIEW_TASK, CREATE_TASK, PING_TASK, EDIT_TASK, AUTHORIZATION, FEEDBACK,
-    MENU, YES, YES_NO_QUESTION, CANCEL, COMMENTS, TO_MENU, ADD_COMMENT
+    SETTINGS, MENU, YES, YES_NO_QUESTION, CANCEL, COMMENTS, TO_MENU,
+    ADD_COMMENT
 )
 
 from utils import send_message, notify_error, notify_warning, debug
@@ -18,6 +19,15 @@ class Dialog(object):
     def __init__(self):
         self.authorizated = False
         self.answer = None
+        self.MAIN_MENU_MAPPER = {
+            VIEW_TASK: self.view_task_dialog,
+            CREATE_TASK: self.create_task_dialog,
+            PING_TASK: self.ping_task_dialog,
+            EDIT_TASK: self.edit_task_dialog,
+            AUTHORIZATION: self.change_credentials_dialog,
+            FEEDBACK: self.feedback_dialog,
+            SETTINGS: self.user_settings_dialog
+        }
 
     def start(self):
         debug('[Start Dialog]')
@@ -29,21 +39,19 @@ class Dialog(object):
             selection = yield (self.answer or 'Select an operation', MENU)
             self.answer = None
 
-            if selection.text == VIEW_TASK:
-                yield from self.view_task_dialog()
-            elif selection.text == CREATE_TASK:
-                yield from self.create_task_dialog()
-            elif selection.text == PING_TASK:
-                yield from self.ping_task_dialog()
-            elif selection.text == EDIT_TASK:
-                yield from self.edit_task_dialog()
-            elif selection.text == AUTHORIZATION:
-                yield from self.change_credentials_dialog()
-            elif selection.text == FEEDBACK:
-                yield from self.feedback_dialog()
+            handler_func = self.MAIN_MENU_MAPPER.get(selection.text, None)
+            if not handler_func:
+                return self.invalid_input()
+
+            yield from handler_func()
+
         else:
             yield 'Sorry, you are not authorizated!\n' + \
                 'Try login again by typing /authorization.'
+
+    def invalid_input(self):
+        self.answer = 'Invalid input. Select a valid operation'
+        return
 
     def view_task_dialog(self):
         task_number = yield from self.get_task_number()
@@ -353,6 +361,9 @@ class Dialog(object):
                 f'{issue.key} is not updated.'
             return
         self.answer = f'Description for task {issue.key} updated !'
+
+    def user_settings_dialog(self):
+        pass
 
 
 if __name__ == "__main__":

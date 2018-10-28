@@ -26,7 +26,7 @@ SECRET_KEY = '6k6uzu8%%w!fx7^75%yp9(xfq)*dwubh+30fu9xf^m6ubr9kt4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ng_rock_domain = '202ba79f.ngrok.io'
+ng_rock_domain = '689db27a.ngrok.io'
 ALLOWED_HOSTS = ['localhost', '127.0.0.1:8000', ng_rock_domain]
 
 
