@@ -45,6 +45,7 @@ class Bot(object):
             update
         )
         chat_id = update.message.chat_id
+        print('passed 1')
 
         if update.message.text == "/start":
             self.handlers.pop(chat_id, None)
@@ -53,13 +54,20 @@ class Bot(object):
             self.generator.user = None
             self.handlers.pop(chat_id, None)
 
+        print('passed 2')
         if chat_id not in self.handlers:
             answer = next(self.handlers[chat_id])
         else:
+            print('passed 3')
             try:
+                print('passed 4')
+                print(str(self.handlers))
+                print(update.message)
                 answer = self.handlers[chat_id].send(update.message)
+                print('passed 5')
             except StopIteration:
                 del self.handlers[chat_id]
+                print('passed 6')
                 return self.handle_message(bot, update)
         self._send_answer(bot, chat_id, answer)
 

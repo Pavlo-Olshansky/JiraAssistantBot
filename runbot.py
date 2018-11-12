@@ -12,7 +12,7 @@ from base.menu import (
     ADD_COMMENT
 )
 
-from utils import send_message, notify_error, notify_warning, debug
+from utils import send_message, notify_error, notify_warning, debug, build_menu
 
 
 class Dialog(object):
@@ -158,14 +158,16 @@ class Dialog(object):
         if selected_user.text == CANCEL:
             return
 
-        task_number = yield('Enter task number to ping.')
+        task = yield('Enter task number to ping.')
+        project = self.get_user_project()
+        task_number = f'{project.key}-{task.text}'
         ping_success = self.ping_user(
             user=user,
-            task_number=task_number.text
+            task_number=task_number
         )
         if ping_success:
             self.answer = f'Ping user {selected_user.text} for task ' + \
-                f'{task_number.text} success!'
+                f'{task_number} success!'
         else:
             self.answer = 'Ping Failure.' + \
                 'Something went wrong, please try again.'
@@ -243,11 +245,13 @@ class Dialog(object):
         try:
             url = f'https://{self.user.profile.company_name}.atlassian.net'
             self.jira = JIRA(url, basic_auth=(
-                self.user.profile.jira_login, self.user.profile.jira_token))
+                self.user.profile.jira_login, self.user.profile.jira_token)
+            )
             users = self.jira.search_users(self.user.profile.jira_login)
             if users:
                 self.user.profile.jira_username_key = users[0].key
                 self.user.profile.jira_username_display = users[0].displayName
+                self.user.profile.save()
                 return True
         except Exception as e:
             notify_error(e)
@@ -278,7 +282,9 @@ class Dialog(object):
                 return
             self.user.profile.project_id = project.id
             self.user.profile.save()
-            username = ', ' + self.user.profile.jira_username_display or ''
+
+            jira_username = self.user.profile.jira_username_display
+            username = jira_username and ', ' + jira_username or ''
             self.answer = f'Welcome{username}! You are loggined successfully.'
             return True
 
@@ -300,8 +306,8 @@ class Dialog(object):
                     return project
 
     def ping_user(self, user, task_number):
-        url = f'https://{self.user.profile.company_name}.' + \
-            f'atlassian.net/browse/{task_number}'
+        url = f'https://{self.user.profile.company_name}.atlassian.net/' + \
+            f'browse/{task_number}'
         msg = 'User {user} ping you about the task {task} - {url}'.format(
             user=self.user.profile.jira_username_display,
             task=task_number,

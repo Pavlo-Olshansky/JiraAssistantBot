@@ -48,10 +48,13 @@ def build_menu(buttons,
 def notify(msg, status):
     now = datetime.now()
     text = f'[{status}] [{now}]: {msg}'
-    send_message(
-        chat_id=settings.FEEDBACK_RECEIVER_CHAT_ID,
-        text=text
-    )
+    if ERROR_RECEIVER_CHAT_ID:
+        send_message(
+            chat_id=settings.ERROR_RECEIVER_CHAT_ID,
+            text=text
+        )
+    else:
+        print(text)
 
 
 def notify_error(msg):
