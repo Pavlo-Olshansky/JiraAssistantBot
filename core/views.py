@@ -94,7 +94,7 @@ class WebhookView(View):
         users = apps.get_model(
             settings.AUTH_USER_MODEL
         ).objects.filter(
-            **{'profile__' + permission_codename: False}
+            **{'profile__' + permission_codename: True}
         )
 
         # notify_only_my_assignee
@@ -119,14 +119,8 @@ class WebhookView(View):
         task = data['issue']['key']
         description = data['issue']['fields']['description']
         summary = data['issue']['fields']['summary']
-        msg = '''Task {task} {action} by {user}: \n
-            {summary}\n{description}'''.format(
-                task=task,
-                action=action,
-                user=user,
-                summary=summary,
-                description=description
-            )
+        msg = f'Task {task} {action} by {user}: ' + \
+            f'{summary}\nDescription: {description}'
 
         return msg
 
@@ -153,14 +147,8 @@ class WebhookView(View):
         comment_text = data['comment']['body']
         task = data['issue']['key']
         summary = data['issue']['fields']['summary']
-        msg = '''Comment of user {author} {action}.\n
-            Task - {task} - {summary} ({task_url}):\n{comment_text}'''.format(
-                author=author,
-                action=action,
-                task=task,
-                summary=summary,
-                comment_text=comment_text
-            )
+        msg = f'Comment of user {author} {action}.\n' + \
+            f'Task - {task} - {summary}:\n{comment_text}'
 
         return msg
 
@@ -188,11 +176,7 @@ class WebhookView(View):
         author = data['comment']['author']['displayName']
         content = data['attachment']['content']
 
-        msg = 'Attachment of user {author} {action}.\n{content}'.format(
-                author=author,
-                action=action,
-                content=content
-            )
+        msg = f'Attachment of user {author} {action}.\n{content}'
 
         return msg
 
