@@ -12,7 +12,10 @@ from base.menu import (
     ADD_COMMENT
 )
 
-from utils import send_message, notify_error, notify_warning, debug, build_menu
+from utils import (
+    send_message, notify_error, notify_warning, debug, build_menu,
+    send_sticker, send_gif
+)
 
 
 class Dialog(object):
@@ -126,6 +129,7 @@ class Dialog(object):
             return
 
         task_url = self.get_task_url(new_issue.key)
+        send_sticker(self.user.profile.chat_id, 'ok')
         self.answer = f'Task {new_issue.key} created.\n{task_url}'
 
     def ping_task_dialog(self):
@@ -223,11 +227,12 @@ class Dialog(object):
 
         message_is_sent = send_message(
             chat_id=settings.FEEDBACK_RECEIVER_CHAT_ID,
-            text=f'Йо чувааак, тут фідбек тобі пишуть кароч:\n{feedback.text}'
+            text=f'Feedback received:\n{feedback.text}'
         )
         if message_is_sent:
-            self.answer = 'Thanks, you`re the best 👍\n' + \
+            caption = 'Thanks, you`re the best 👍\n' + \
                 'We will consider your wishes.'
+            send_gif(self.user.profile.chat_id, 'thank you', caption)
         else:
             self.answer = 'Sorry, an error occured.'
 
