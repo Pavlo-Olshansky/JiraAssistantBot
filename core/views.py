@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.views.generic import View, DetailView
 from django.views.decorators.csrf import csrf_exempt
 
-from utils import send_message, notify_error, debug
+from utils import send_message, send_gif, notify_error, debug
 
 
 NOTIFY_PERMISSION_MAPPER = {
@@ -109,10 +109,7 @@ class WebhookView(View):
 
     def send_message_to_users(self, msg, users):
         for user in users:
-            message_is_sent = send_message(
-                chat_id=user.profile.chat_id,
-                text=msg
-            )
+            send_gif(user.profile.chat_id, 'breaking_news', msg)
 
     def format_msg_for_task(self, data, action):
         user = data['user']['displayName']

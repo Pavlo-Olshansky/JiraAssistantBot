@@ -31,7 +31,8 @@ STICKERS_FILE_ID_MAPPER = {
 }
 
 GIFS_FILE_ID_MAPPER = {
-    'thank you': 'CgADAgADKgMAAkArIEh3RhMT3wABil0C'
+    'thank_you': 'CgADAgADKgMAAkArIEh3RhMT3wABil0C',
+    'breaking_news': 'CgADAgAD0AMAAkArIEjUNvq_Y5XoJwI'
 }
 
 

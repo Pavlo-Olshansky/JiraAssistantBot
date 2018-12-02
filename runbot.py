@@ -223,6 +223,7 @@ class Dialog(object):
             self.authorizated = yield from self.get_creditails()
 
     def feedback_dialog(self):
+        import ipdb; ipdb.set_trace()
         feedback = yield ('Please, write a feedback:')
 
         message_is_sent = send_message(
@@ -232,7 +233,7 @@ class Dialog(object):
         if message_is_sent:
             caption = 'Thanks, you`re the best 👍\n' + \
                 'We will consider your wishes.'
-            send_gif(self.user.profile.chat_id, 'thank you', caption)
+            send_gif(self.user.profile.chat_id, 'thank_you', caption)
         else:
             self.answer = 'Sorry, an error occured.'
 
