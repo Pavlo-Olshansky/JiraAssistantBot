@@ -223,7 +223,6 @@ class Dialog(object):
             self.authorizated = yield from self.get_creditails()
 
     def feedback_dialog(self):
-        import ipdb; ipdb.set_trace()
         feedback = yield ('Please, write a feedback:')
 
         message_is_sent = send_message(

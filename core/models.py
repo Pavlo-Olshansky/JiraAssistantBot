@@ -16,7 +16,7 @@ class CoreModel(models.Model):
 
     class Meta:
         abstract = True
-        ordering = 'update_time'
+        ordering = ['update_time']
 
 
 class Profile(CoreModel):

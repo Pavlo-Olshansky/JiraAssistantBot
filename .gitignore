@@ -1,8 +1,50 @@
-.jira_assistant
-__pycache__
-settings_local.py
-jira_assistant.sublime-project
-jira_assistant.sublime-workspace
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv*/
+.venv/
+
+# Django
 db.sqlite3
-ngrok
+*.log
+celerybeat-schedule
+staticfiles/
+
+# Environment
+.env
+.env.prod
+.env.dev
+.env.test
+settings_local.py
+
+# Coverage & testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Redis
+dump.rdb
+
+# Misc
+.jira_assistant
+ngrok
+
+# Local tooling
+CLAUDE.md
+MIGRATION_SPEC.md
+.specify/
+specs/

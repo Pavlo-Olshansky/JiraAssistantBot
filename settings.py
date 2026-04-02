@@ -1,18 +1,12 @@
-TELEGRAM_API_KEY = 'TELEGRAM_API_KEY_HERE'
+from decouple import config, Csv
 
-FEEDBACK_RECEIVER_CHAT_ID = 'FEEDBACK_RECEIVER_CHAT_ID_HERE'
+TELEGRAM_API_KEY = config('TELEGRAM_API_KEY')
+FEEDBACK_RECEIVER_CHAT_ID = config('FEEDBACK_RECEIVER_CHAT_ID', default='')
 
-DB_NAME = 'DB_NAME_HERE'
-DB_USER = 'DB_USER_HERE'
-DB_USER_PASSWORD = 'DB_USER_PASSWORD_HERE'
-DB_HOST = 'DB_HOST_HERE'
-DB_PORT = 'DB_PORT_HERE'
+DB_NAME = config('DB_NAME', default='jira_bot')
+DB_USER = config('DB_USER', default='postgres')
+DB_PASSWORD = config('DB_PASSWORD', default='postgres')
+DB_HOST = config('DB_HOST', default='localhost')
+DB_PORT = config('DB_PORT', default='5432')
 
-DEBUG = False
-
-CELERY_BROKER_URL = 'CELERY_BROKER_URL_HERE'
-
-try:
-    from settings_local import * # NOQA
-except Exception:
-    print('Local settings can not be found.')
+DEBUG = config('DEBUG', default=True, cast=bool)
