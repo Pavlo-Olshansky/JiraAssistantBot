@@ -1,17 +1,8 @@
-asn1crypto==0.24.0
-certifi==2018.8.24
-cffi==1.11.5
-chardet==3.0.4
-cryptography==2.3.1
-future==0.16.0
-idna==2.7
-pycparser==2.18
-python-telegram-bot==11.1.0
-requests==2.19.1
-six==1.11.0
-urllib3==1.23
-Django==2.1.1
-jira==2.0.0
--e git+https://gitlab.com/pycqa/flake8#egg=flake8
-psycopg2-binary==2.7.5
-Celery==4.2.1
+Django==5.2
+aiogram==3.25.0
+aiohttp>=3.9.0
+asgiref>=3.8.0
+jira>=3.8.0
+psycopg2-binary==2.9.10
+python-decouple==3.8
+gunicorn==23.0.0
