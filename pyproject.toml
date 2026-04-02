@@ -1,0 +1,11 @@
+[project]
+name = "jira-assistant-bot"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "django_microservice.settings"
+python_files = "tests.py test_*.py"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
